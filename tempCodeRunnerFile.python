@@ -1,0 +1,8 @@
+import cv2
+import dlib
+import face_recognition
+import numpy as np
+
+print("🚀 Environment Check Successful!")
+print(f"OpenCV Version: {cv2.__version__}")
+print(f"Dlib Version: {dlib.__version__}")
