@@ -35,7 +35,8 @@ Watch the full 85-second end-to-end performance walkthrough demonstrating the mu
 
 🎥 **Live System Demonstration:**
 
-https://github.com/shambhushekharsinha-engg/Synapse-AI-ERP/blob/main/Synapse_AI_ERP_Demonstration.mp4?raw=true
+https://github.com/shambhushekharsinha-engg/Synapse-AI-ERP/blob/main/Synapse_AI_ERP_Demonstatration.mp4?raw=true
+
 
 🌟 Key Features Covered
 
