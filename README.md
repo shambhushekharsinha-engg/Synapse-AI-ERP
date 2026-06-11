@@ -33,7 +33,9 @@ Watch the full 85-second end-to-end performance walkthrough demonstrating the mu
 
 > 💡 **Developer Note:** Expand the video to full screen to view the real-time adjustments of the regression curves and performance deviation tags as data profiles shift.
 
-<video src="https://github.com/shambhushekharsinha-engg/Synapse-AI-ERP/raw/main/Synapse_AI_ERP_Demonstration.mp4" width="100%" controls autoplay muted loop></video>
+🎥 **Live System Demonstration:**
+
+https://github.com/shambhushekharsinha-engg/Synapse-AI-ERP/blob/main/Synapse_AI_ERP_Demonstration.mp4?raw=true
 
 🌟 Key Features Covered
 
