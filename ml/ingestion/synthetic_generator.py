@@ -29,25 +29,48 @@ class SyntheticERPGenerator:
         })
 
     def generate_demand(self, products_df, warehouses_df):
-        dates = [datetime.today().date() - timedelta(days=x) for x in range(self.days)]
-        dates.reverse()
+        start_date = datetime(2026, 1, 1).date()
+        dates = [start_date + timedelta(days=x) for x in range(self.days)]
         
         records = []
         for d in dates:
+            day_of_week = d.weekday()
+            day_of_year = d.timetuple().tm_yday
+            
+            # Global holiday effect (e.g. late Nov/Dec)
+            holiday_multiplier = 1.5 if 320 <= day_of_year <= 360 else 1.0
+            
             for _, p in products_df.iterrows():
                 for _, w in warehouses_df.iterrows():
                     # Seasonal + trend + noise
-                    day_of_year = d.timetuple().tm_yday
-                    seasonality = np.sin(2 * np.pi * day_of_year / 365) * 10
-                    base_demand = np.random.normal(50, 15)
-                    demand = max(0, int(base_demand + seasonality))
+                    seasonality = np.sin(2 * np.pi * day_of_year / 365) * 15
+                    weekly_seasonality = 5 if day_of_week in [5, 6] else 0 # Weekend boost
+                    
+                    # Product specific base
+                    base_demand = (p["base_price"] * 0.1) + 20
+                    
+                    # Random promotional event (2% chance)
+                    promotion_multiplier = 2.0 if np.random.random() < 0.02 else 1.0
+                    
+                    # Supplier delay effect (lead_time spike)
+                    delay_days = np.random.randint(0, 10) if np.random.random() < 0.05 else 0
+                    actual_lead_time = p["lead_time_days"] + delay_days
+                    
+                    raw_demand = (base_demand + seasonality + weekly_seasonality) * holiday_multiplier * promotion_multiplier
+                    noise = np.random.normal(0, 5)
+                    
+                    demand = max(0, int(raw_demand + noise))
                     
                     records.append({
                         "date": d,
                         "product_id": p["product_id"],
                         "warehouse_id": w["warehouse_id"],
                         "demand": demand,
-                        "inventory_level": max(0, demand * np.random.uniform(1, 3)),
+                        "price": p["base_price"],
+                        "promotion_active": 1 if promotion_multiplier > 1.0 else 0,
+                        "lead_time": actual_lead_time,
+                        "supplier_delay": delay_days,
+                        "inventory_level": max(0, demand * np.random.uniform(0.5, 3)),
                         "stockout": 1 if demand > 0 and np.random.random() < 0.05 else 0
                     })
         return pd.DataFrame(records)
