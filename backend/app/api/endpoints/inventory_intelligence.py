@@ -91,3 +91,105 @@ def run_abc_classification(data: List[dict]):
     # In a real system, this would fetch the catalog and annual demand directly from the DB.
     # For this endpoint, we accept a list of product dictionaries for flexibility.
     return ABCAnalysisService.classify_products(data)
+
+from app.schemas.inventory_intelligence import StockoutRiskResponse, DeadStockResponse, InventoryTurnoverResponse
+from app.services.stockout_risk import StockoutRiskService
+from app.services.dead_stock import DeadStockService
+from app.services.inventory_turnover import InventoryTurnoverService
+from app.services.forecast import ForecastService
+from ml.registry import ModelRegistry
+
+def get_forecast_service():
+    registry = ModelRegistry()
+    return ForecastService(registry)
+
+@router.get("/{product_id}/stockout-risk", response_model=StockoutRiskResponse)
+def get_stockout_risk(
+    product_id: int, 
+    warehouse_id: int = Query(...),
+    horizon_days: int = Query(14),
+    planned_inbound: float = Query(0.0),
+    db: Session = Depends(get_db),
+    forecast_svc: ForecastService = Depends(get_forecast_service)
+):
+    inventory = db.query(Inventory).filter(
+        Inventory.product_id == product_id, 
+        Inventory.warehouse_id == warehouse_id
+    ).first()
+    
+    current_inventory = inventory.quantity if inventory else 0.0
+    
+    # Delegate forecast entirely to Phase 2, isolating the ML model.
+    try:
+        forecast_response = forecast_svc.get_forecast(product_id, warehouse_id, horizon_days)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Forecast unavailable: {str(e)}")
+        
+    forecast_points = [{"date": fp.date.strftime("%Y-%m-%d"), "predicted_demand": fp.predicted_demand} for fp in forecast_response.forecast]
+    
+    import datetime
+    start_date = datetime.datetime.utcnow()
+    
+    risk_dict = StockoutRiskService.calculate_risk(
+        product_id=product_id,
+        current_inventory=current_inventory,
+        forecast=forecast_points,
+        planned_inbound=planned_inbound,
+        start_date=start_date
+    )
+    
+    return StockoutRiskResponse(**risk_dict)
+
+@router.get("/{product_id}/dead-stock", response_model=DeadStockResponse)
+def get_dead_stock(
+    product_id: int, 
+    warehouse_id: int = Query(...),
+    days_since_last_sale: int = Query(...),
+    db: Session = Depends(get_db),
+    forecast_svc: ForecastService = Depends(get_forecast_service)
+):
+    inventory = db.query(Inventory).filter(
+        Inventory.product_id == product_id, 
+        Inventory.warehouse_id == warehouse_id
+    ).first()
+    
+    current_inventory = inventory.quantity if inventory else 0.0
+    
+    try:
+        # Forecast for 30 days
+        forecast_response = forecast_svc.get_forecast(product_id, warehouse_id, 30)
+        total_forecast_30d = sum([fp.predicted_demand for fp in forecast_response.forecast])
+    except Exception:
+        total_forecast_30d = 0.0
+        
+    ds_dict = DeadStockService.evaluate(
+        product_id=product_id,
+        inventory_units=current_inventory,
+        days_since_last_sale=days_since_last_sale,
+        forecast_demand_30d=total_forecast_30d
+    )
+    
+    return DeadStockResponse(**ds_dict)
+
+@router.get("/{product_id}/turnover", response_model=InventoryTurnoverResponse)
+def get_turnover(
+    product_id: int,
+    warehouse_id: int = Query(...),
+    annual_revenue: float = Query(...),
+    db: Session = Depends(get_db)
+):
+    inventory = db.query(Inventory).filter(
+        Inventory.product_id == product_id, 
+        Inventory.warehouse_id == warehouse_id
+    ).first()
+    
+    # In MVP, average inventory is just current inventory
+    average_inventory = inventory.quantity if inventory else 0.0
+    
+    turnover_dict = InventoryTurnoverService.calculate(
+        product_id=product_id,
+        revenue=annual_revenue,
+        average_inventory=average_inventory
+    )
+    
+    return InventoryTurnoverResponse(**turnover_dict)

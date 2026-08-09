@@ -26,3 +26,29 @@ class ABCClassificationResponse(BaseModel):
     annual_consumption_value: float
     abc_class: str
     cumulative_percentage: float
+
+class StockoutRiskResponse(BaseModel):
+    product_id: int
+    stockout_risk: str # "HIGH", "MEDIUM", "LOW"
+    stockout_expected: bool
+    expected_stockout_date: Optional[str] = None
+    forecast_horizon_days: int
+    current_inventory: float
+    forecasted_demand: float
+    planned_inbound: float
+
+class DeadStockResponse(BaseModel):
+    product_id: int
+    is_dead_stock: bool
+    inventory_units: float
+    forecast_demand_30d: float
+    days_since_last_sale: int
+    reason: str
+
+class InventoryTurnoverResponse(BaseModel):
+    product_id: int
+    turnover_ratio: float
+    calculation_method: str # e.g. "revenue_based_proxy"
+    average_inventory: float
+    annual_cogs_or_revenue: float
+
