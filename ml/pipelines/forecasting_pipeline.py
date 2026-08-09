@@ -68,9 +68,8 @@ def run_pipeline():
     
     # Evaluate Baselines
     for name, model in models.items():
-        # Fit on combined train + val subset
-        combined_train = pd.concat([train_subset, val_subset])
-        model.fit(combined_train)
+        # Fit strictly on train subset (no validation data)
+        model.fit(train_subset)
         preds = model.predict(horizon)
         metrics = evaluate_forecast(y_test, preds)
         metrics['Model'] = name
@@ -80,9 +79,14 @@ def run_pipeline():
     xgb_metrics = evaluate_forecast(y_test, xgb_preds)
     xgb_metrics['Model'] = 'XGBoost'
     results.append(xgb_metrics)
+    
+    # Save Model Artifact
+    artifact_path = "ml/artifacts/xgboost_forecaster.json"
+    xgb_model.save(artifact_path)
+    print(f"\nXGBoost model artifact saved to {artifact_path}")
         
     results_df = pd.DataFrame(results).set_index('Model')
-    print(results_df.to_markdown())
+    print("\n" + results_df.to_markdown())
 
 if __name__ == "__main__":
     run_pipeline()

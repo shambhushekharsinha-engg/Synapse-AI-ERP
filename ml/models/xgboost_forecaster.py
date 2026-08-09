@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import xgboost as xgb
+import os
 from ml.models.baseline import BaseForecaster
 
 class XGBoostForecaster(BaseForecaster):
@@ -11,14 +12,12 @@ class XGBoostForecaster(BaseForecaster):
             learning_rate=0.1,
             max_depth=5,
             random_state=42,
+            early_stopping_rounds=10,
             **kwargs
         )
         self.features = None
-        self.last_train_df = None
 
     def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None):
-        # We assume feature_engineering has already been applied.
-        # Exclude non-feature columns
         exclude_cols = ['date', 'demand']
         self.features = [c for c in train_df.columns if c not in exclude_cols]
         
@@ -33,17 +32,12 @@ class XGBoostForecaster(BaseForecaster):
         else:
             self.model.fit(X_train, y_train, verbose=False)
             
-        # Store for autoregressive prediction simulation if needed
-        self.last_train_df = train_df
         return self
 
     def predict(self, test_df: pd.DataFrame) -> np.ndarray:
-        # For simplicity in this gate, we assume test_df already has the features generated
-        # In a real autoregressive scenario, we'd predict t+1, compute new lags, then predict t+2.
-        # But since the synthetic features (like price, holiday) are known in advance, and lags
-        # are built into test_df by the feature engineer (though technically leaked if using actuals),
-        # we will use the pre-computed test_df features for direct forecasting.
-        # A true multi-step forecaster would iteratively build lag features.
-        
         X_test = test_df[self.features]
         return self.model.predict(X_test)
+        
+    def save(self, filepath: str):
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        self.model.save_model(filepath)
