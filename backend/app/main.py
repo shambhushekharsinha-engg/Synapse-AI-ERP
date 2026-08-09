@@ -16,6 +16,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.api.endpoints import router as api_router
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Synapse AI ERP API"}
@@ -23,3 +25,5 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+app.include_router(api_router, prefix="/api/v1")
