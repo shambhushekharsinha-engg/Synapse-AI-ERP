@@ -7,3 +7,8 @@ pydantic
 pydantic-settings
 python-dotenv
 pytest
+pandas
+scikit-learn
+xgboost
+matplotlib
+numpy
