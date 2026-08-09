@@ -45,9 +45,21 @@ class FeatureEngineer:
         return df
         
     def add_business_and_supply_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        # In this dataset, price, promotion, lead_time, supplier_delay are already present
-        # But we could engineer ratios or indicators here if needed.
-        # For XGBoost, categorical encoding might be needed, but XGBoost can handle them natively if typed as category
+        df = df.copy()
+        
+        # known at prediction time (start of day)
+        # price, promotion_active, lead_time (planned) are fine as contemporaneous features
+        
+        # UNKNOWN at prediction time: inventory_level (end of day), stockout (end of day), supplier_delay (realized)
+        # We must strictly shift these to prevent data leakage!
+        leakage_cols = ['inventory_level', 'stockout', 'supplier_delay']
+        
+        for col in leakage_cols:
+            df[f'{col}_lag_1'] = df.groupby(['product_id', 'warehouse_id'])[col].shift(1)
+            # We then drop the unshifted leakage columns so they don't enter X_train
+            df.drop(columns=[col], inplace=True)
+            
+        df.fillna(0, inplace=True)
         return df
 
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
