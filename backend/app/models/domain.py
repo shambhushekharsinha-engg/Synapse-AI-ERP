@@ -17,6 +17,8 @@ class Product(Base):
     name = Column(String, index=True)
     category = Column(String)
     unit_price = Column(Float)
+    ordering_cost_per_order = Column(Float, nullable=True)
+    annual_holding_cost_per_unit = Column(Float, nullable=True)
     lead_time_days = Column(Integer)
 
 class Supplier(Base):

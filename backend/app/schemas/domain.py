@@ -7,6 +7,8 @@ class ProductBase(BaseModel):
     name: str
     category: Optional[str] = None
     unit_price: float
+    ordering_cost_per_order: Optional[float] = None
+    annual_holding_cost_per_unit: Optional[float] = None
     lead_time_days: int
 
 class ProductCreate(ProductBase):

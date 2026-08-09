@@ -30,8 +30,11 @@ async def startup_event():
     except FileNotFoundError:
         print(f"Warning: Model artifact not found at {artifact_path}. Forecast API will return 503.")
 
+from app.api.endpoints import products, forecast, inventory_intelligence
+
 app.include_router(products.router, prefix=f"{settings.API_V1_STR}/products", tags=["products"])
 app.include_router(forecast.router, prefix=f"{settings.API_V1_STR}/forecast", tags=["forecast"])
+app.include_router(inventory_intelligence.router, prefix=f"{settings.API_V1_STR}/intelligence/inventory", tags=["inventory_intelligence"])
 
 @app.get("/")
 def root():
